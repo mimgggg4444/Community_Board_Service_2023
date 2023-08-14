@@ -363,18 +363,75 @@ public AuditorAware<String>auditorAware(){return()->Optional.of("uno");//todo: �
 
 
 ------- 03. 데이터베이스 접근 로직 테스트 정의3
+package com.projectboard.domain; // 이거 주소 맞으려나?
+ArticleComment.java
+@Getter @ToString @Table(indexes={@Index(columnList="content"),@Index(columnList="createdAt"),@Index(columnList="createdBy")})
+public class ArticleComment{@Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @Setter @ManyToOne(optional=false) private Article article; @Setter @Column(nullable=false, length=500) private String content;
+@CreatedDate @Column(nullable=false) private LocalDateTime createdAt;@CreatedBy @Column(nullable=false, length=100) private String createdBy;@LastModifiedDate @Column(nullable=false) private LocalDateTime modifiedAt;@LastModifiedBy @Column(nullable=false, length=100) private String modifiedBy;
+protected ArticleComment(){}
+private ArticleComment(Article article, String content){this.article=article;this.content=content;}
+public static ArticleComment of(Article article, String content){return new ArticleComment(article, content);}
+@Override public boolean equals(Object o){if(this==o)return ture;if(!(o instanceof ArticleComment that))return false; return id != null&&id.equals(this.id);}
+@Override public int hashCode(){return Objects.hash(id);}}
+
+intellij -> services -> + -> rrun configuration type -> spring boot
+
+intellij -> com.board.project.ArticleDto.java
+public record ArticleDto(String title,String content,String hashtag,LocalDateTime createdAt,String createdBy,LocalDateTime modifiedAt,String modifiedBy)implements Serializable{}
+
+intellij Article.java @Setter private String hashtag;코드 밑에 작성
+@ToString.Exclude @OrderBy("id") @OneToMany(mappedBy="article", cascade=CascadeType.ALL) private final Set<ArticleComment>articleComments=new LinkedHashSet<>();
+
+intellij -> com.board.project.repository.ArticleRepository.java
+public interface ArticleRepository extends JpaRepository<Article,Long>{}
+
+intellij -> com.board.project.repository.ArticleCommentRepository.java
+public interface ArticleCommentRepository extends JpaRepository<ArticleComment,Long>{}
+
+intellij -> ArticleRepository -> cmd+shift+t -> class name:JpaRepositoryTest
+@DisplayName("JPA 연결 테스트")@Import(JpaConfig.class)@DataJpaTest class JpaRepositoryTest{private final ArticleRepository articleRepository; private final ArticleCommentRepository ArticleCommentRepository; public JpaRepositoryTest(@Autowired ArticleRepository articleRepository,@Autowired ArticleCommentRepository ArticleCommentRepository){this.articleRepository=articleRepository;this.articleCommentRepository=articleCommentRepository;}
+@DisplayName("select 테스트")@Test void givenTestData_whenSelecting_thenWorksFine(){//given
+//when
+List<Article>articles=articleRepository.findAll();
+//then
+assertThat(articles).isNotNull().hasSize(0);
+}}
+
+-------03.데이터베이스접근로직테스트정리4
+mockaroo
+https://github.com/djkeh/fastcampus-project-board/blob/main/src/main/resources/data.sql 여기서 복사한 데이터 -> resources/data.sql파일안에 넣어둠.
 
 
+intellij -> package com.board.project.repository
+insert test
+@DisplayName("insert test")@Test void givenTestData_whenInserting_thenWorksFine(){//given long previousCount=articleRepository.count();//when Article savedArticle=articleRepository.save(Article.of("new article","new content","#spring"))//Then assertThen(articleRepository.count()).isEqualTo(previousCount + 1);}
+
+update test
+@DisplayName("insert test")@Test void givenTestData_whenUpdating_thenWorksFine(){//given Article article=articleRepository.findById(1L).orElseThrow();String updatedHashtag="#springboot";article.setHashtag(updatedHashtag);//when Article savedArticle=articleRepository.saveAndFlush(article)//Then assertThen(savedArticle).hasFieldOrPropertyWithValue("hashtag",updatedHashtag);}
+
+*junit -> saveAndFlush
+
+delete test
+@DisplayName("insert test")@Test void givenTestData_whenDeleting_thenWorksFine(){//given Article article=articleRepository.findById(1L).orElseThrow(); long previousArticleCount=articleRepository.count(); long previousArticleCommentCount=articleCommentRepository.count();int deletedCommentsSize=article.getArticleComments().size();
 
 
+//when articleRepository.delete(article)//Then assertThat(articleRepository.count()).isEqualTo(previousArticleCount-1);assertThat(articleCommentReposit.count()).isEqualTo(previousArticleCommentCount-1)}
 
 
+intellij -> config -> JpaConfig.java 
+import밑에 @EnableJpaAuditing추가되어 있음.
+
+intellij -> Article.java + ArticleComment.java
+public class Article위에 @EntityListeners(AuditingEntityListener.class)붙여주기.
+
+intellij -> application.yaml
+spring: 제일 밑에 test.database.replace: none추가하기.
+근데 이 내용 필요없다고 해서 그냥 하지말기.
 
 
-
-
-
-
+gitkraken 전체적인 사용방법
+새로운 코드를 작성하면 unstaged files에 뜸 -> commit하고 싶은 파일들만 staged files에 옮김. -> commit message작성 및 commit -> 다했으면 push -> 
+github에서 request(project설정및 milestone) -> create pull request -> file changed에서 변경된 파일 확인. -> review changes -> merge pull request -> 
 
 
 
