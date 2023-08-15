@@ -40,4 +40,5 @@ spring:
   datasource:
     url: jdbc:h2:mem:board;mode=mysql
     driverClassName: org.h2.Driver
+  h2.console.enabled: true
   sql.init.mode: always
